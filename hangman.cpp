@@ -31,7 +31,7 @@ bool charPresentInString(string s, char c){
 	return false;
 }
 
-char getMaxFreqChar(vector<string>& words, vector<int>& shouldUse, int start, int end, vector<char>& hitList, vector<char>& missList){
+char getMaxFreqChar(vector<string>& words, vector<bool>& shouldUse, int start, int end, vector<char>& hitList, vector<char>& missList){
 
 	vector<int> freqs(26, 0);
 	for(int i=start; i<end;i++){
@@ -48,7 +48,7 @@ char getMaxFreqChar(vector<string>& words, vector<int>& shouldUse, int start, in
 				
 				if(!flag){
 					shouldUse[i] = 0;
-					break;
+					continue;
 				}
 			}
 			
@@ -61,8 +61,8 @@ char getMaxFreqChar(vector<string>& words, vector<int>& shouldUse, int start, in
 				}
 		
 				if(!flag){
-					shouldUse[i] = 1;
-					break;
+					shouldUse[i] = 0;
+					continue;
 				}
 			}
 
@@ -83,7 +83,6 @@ char getMaxFreqChar(vector<string>& words, vector<int>& shouldUse, int start, in
 	int maxFreq = 0;
 	char c = 'z';
 	for(int i=0;i<26;i++){
-		cout<<freqs[i]<<endl;
 		if(freqs[i] > maxFreq){
 			maxFreq = freqs[i];
 			c = char(97+i);
@@ -101,14 +100,15 @@ void printBlanks(string blanks, vector<char>& missList){
 }
 
 int main(){
-
+	bool print = !true;
 	vector<string> words;
 	string s;
 	map<int, pair<int, int> > wordBoundaries;
 	int maxWordLen = 0;
 	ifstream inp;
 
-	inp.open("/usr/share/dict/words");
+	// inp.open("/usr/share/dict/words");
+	inp.open("words_50000.txt");
 	while(inp>>s){
 		if(isStrAlpha(s)){
 			words.push_back(convertStrToLower(s));
@@ -130,34 +130,41 @@ int main(){
 	}
 	wordBoundaries[maxWordLen] = pair<int, int>(last, words.size());
 
-	vector<int> shouldUse(words.size(), 0);
+	vector<bool> shouldUse(words.size(), 0);
 	int correct = 0, incorrect = 0;
 
-	inp.open("test.txt");
+	inp.open("words_50000.txt");
+	// inp.open("test.txt");
 	while(inp>>s){
+		if(!print)
+			cout<<correct + incorrect<<endl;
+		
 		vector<char> missList;
 		vector<char> hitList;
 
 		int lenRemaining = s.length();
 		string blanks = string(lenRemaining, '_');
 
-		printBlanks(blanks, missList);
-		cout<<endl;
-
-		// handle this case later
-		if(lenRemaining > maxWordLen){
-			incorrect += 1;
-			continue;
+		if(print){
+			printBlanks(blanks, missList);
+			cout<<endl;
 		}
 
 		pair<int, int> relevantRange = wordBoundaries[lenRemaining];
 		int start = relevantRange.first;
 		int end = relevantRange.second;
+		
+		if(lenRemaining > maxWordLen){
+			start = 0;
+			end = words.size();
+		}
 		std::fill(shouldUse.begin() + start, shouldUse.begin() + end, 1);
 
 		while(missList.size() < 6 && lenRemaining > 0){
 			char c = getMaxFreqChar(words, shouldUse, start, end, hitList, missList);
-			cout<<"guess: "<<c<<endl;
+			
+			if(print)
+				cout<<"guess: "<<c<<endl;
 
 			if(charPresentInString(s, c)){
 				hitList.push_back(c);
@@ -171,7 +178,9 @@ int main(){
 			else{
 				missList.push_back(c);
 			}
-			printBlanks(blanks, missList);
+			
+			if(print)
+				printBlanks(blanks, missList);
 		}
 
 		if(charPresentInString(blanks, '_')){
@@ -185,6 +194,4 @@ int main(){
 
 	float accuracy = float(correct)/(correct + incorrect);
 	cout<<correct<<" "<<incorrect<<" "<<accuracy<<endl;
-	
 }
-

@@ -40,7 +40,7 @@ bool charInVec(vector<char>& v, char c){
 	return true;
 }
 
-char getMaxFreqChar(vector<string>& words, vector<bool>& shouldUse, int start, int end, vector<char>& hitList, vector<char>& missList){
+char getMaxFreqChar(vector<string>& words, vector<bool>& shouldUse, int start, int end, vector<char>& hitList, vector<char>& missList, vector<bool> &indicesOfHit){
 
 	vector<int> freqs(26, 0);
 	for(int i=start;i<end;i++){
@@ -77,16 +77,10 @@ char getMaxFreqChar(vector<string>& words, vector<bool>& shouldUse, int start, i
 
 			// both conditions satisfied, good for calculating frequencies
 			for(int j=0;j<words[i].length();j++){
-				freqs[int(words[i][j])-97] += 1;
+				if(!indicesOfHit[j])
+					freqs[int(words[i][j])-97] += 1;
 			}
 		}
-	}
-
-	for(int i=0;i<missList.size();i++){
-		freqs[int(missList[i])-97] = -100000000;
-	}
-	for(int i=0;i<hitList.size();i++){
-		freqs[int(hitList[i])-97] = -100000000;
 	}
 
 	int maxFreq = 0;
@@ -99,7 +93,7 @@ char getMaxFreqChar(vector<string>& words, vector<bool>& shouldUse, int start, i
 			c = char(97+i);
 		}
 	}
-
+	
 	if(!gotIn){
 		vector<pair<int, char> > f;
 		for(int i=0;i<26;i++)
@@ -118,9 +112,10 @@ char getMaxFreqChar(vector<string>& words, vector<bool>& shouldUse, int start, i
 			}
 		}
 	}
-	else{
-		return c;
-	}
+	
+	
+	return c;
+	
 }
 
 void printBlanks(string blanks, vector<char>& missList){
@@ -131,7 +126,7 @@ void printBlanks(string blanks, vector<char>& missList){
 }
 
 int main(){
-
+	var = 0;
 	clock_t tStart = clock();
 
 	bool print = !true;
@@ -141,7 +136,7 @@ int main(){
 	int maxWordLen = 0;
 	ifstream inp;
 
-	inp.open("words_50000.txt");
+	inp.open("words.txt");
 	while(inp>>s){
 		if(isStrAlpha(s)){
 			words.push_back(convertStrToLower(s));
@@ -167,7 +162,7 @@ int main(){
 	int correct = 0, incorrect = 0;
 
 	if(!print)
-		inp.open("words_50000.txt");
+		inp.open("words.txt");
 	else
 		inp.open("test.txt");
 	while(inp>>s){
@@ -179,7 +174,8 @@ int main(){
 
 		int lenRemaining = s.length();
 		string blanks = string(lenRemaining, '_');
-
+		vector<bool> indicesOfHit(lenRemaining, false);
+				
 		if(print){
 			printBlanks(blanks, missList);
 			cout<<endl;
@@ -188,7 +184,7 @@ int main(){
 		pair<int, int> relevantRange = wordBoundaries[lenRemaining];
 		int start = relevantRange.first;
 		int end = relevantRange.second;
-		
+
 		if(lenRemaining > maxWordLen){
 			start = 0;
 			end = words.size();
@@ -196,7 +192,7 @@ int main(){
 		fill(shouldUse.begin() + start, shouldUse.begin() + end, 1);
 
 		while(missList.size() < 6 && lenRemaining > 0){
-			char c = getMaxFreqChar(words, shouldUse, start, end, hitList, missList);
+			char c = getMaxFreqChar(words, shouldUse, start, end, hitList, missList, indicesOfHit);
 			
 			if(print)
 				cout<<"guess: "<<c<<endl;
@@ -207,6 +203,7 @@ int main(){
 					if(s[i] == c){
 						lenRemaining -= 1;
 						blanks[i] = c;
+						indicesOfHit[i] = 1;
 					}
 				}
 			}

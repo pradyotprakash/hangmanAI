@@ -1,0 +1,14 @@
+Linux default dictionary
+=======================
+12 minutes
+13% accuracy
+
+words.txt
+===============
+5.4 minutes
+66.7% accuracy
+
+extended dictionary
+===================
+88 minutes
+24% accuracy

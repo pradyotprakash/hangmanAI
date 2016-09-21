@@ -76,12 +76,26 @@ char getMaxFreqChar(vector<string>& words, vector<bool>& shouldUse, int start, i
 			}
 
 			// both conditions satisfied, good for calculating frequencies
+			vector<int> localFreq(26, 0);
 			for(int j=0;j<words[i].length();j++){
-				if(!indicesOfHit[j])
-					freqs[int(words[i][j])-97] += 1;
+				if(!indicesOfHit[j]){
+					int ch = int(words[i][j])-97;
+					freqs[ch]++;
+					// if(localFreq[ch] == 0)
+					// 	localFreq[ch] = 1;
+				}
 			}
+
+			// for(int j=0;j<26;j++){
+			// 	freqs[j] += localFreq[j];
+			// }
 		}
 	}
+
+	for(int i=0;i<hitList.size();i++)
+		freqs[int(hitList[i])-97] = -100000000;
+	for(int i=0;i<missList.size();i++)
+		freqs[int(missList[i])-97] = -100000000;
 
 	int maxFreq = 0;
 	char c = 'y';
@@ -126,7 +140,6 @@ void printBlanks(string blanks, vector<char>& missList){
 }
 
 int main(){
-	var = 0;
 	clock_t tStart = clock();
 
 	bool print = !true;

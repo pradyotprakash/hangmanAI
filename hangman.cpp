@@ -11,9 +11,11 @@ bool compare(string p, string q){
 }
 
 bool isStrAlpha(string s){
-	for(int i=0;i<s.length();i++)
-		if(!isalpha(s[i]))
+	for(int i=0;i<s.length();i++){
+		if(!isalpha(s[i])){
 			return false;
+		}
+	}
 	return true;
 }
 
@@ -26,69 +28,74 @@ string convertStrToLower(string s){
 
 bool charPresentInString(string s, char c){
 	for(int i=0;i<s.length();i++){
-		if(s[i] == c)
+		if(s[i] == c){
 			return true;
+		}
 	}
 	return false;
 }
 
-bool charInVec(vector<char>& v, char c){
-	for(int i=0;i<v.size();i++){
-		if(v[i] == c)
-			return false;
-	}
-	return true;
-}
-
-char getMaxFreqChar(vector<string>& words, vector<bool>& shouldUse, int start, int end, vector<char>& hitList, vector<char>& missList, vector<bool> &indicesOfHit){
+char getMaxFreqChar(vector<string>& words, vector<int>& shouldUse, int start, int end, vector<char>& hitList, vector<char>& missList, bool lastHitOrMiss, int lastHitFreq, string blanks){
 
 	vector<int> freqs(26, 0);
+	vector<vector<int> > bigrams(26, vector<int>(26, 0));
 	for(int i=start;i<end;i++){
 
 		if(shouldUse[i]){
 			
-			if(hitList.size() > 0){
-				bool flag = false;
+			if(lastHitOrMiss){
 				char c = hitList.back();
-
-				if(charPresentInString(words[i], c)){
-					flag = true;
-				}
+				int count = lastHitFreq;
 				
-				if(!flag){
+				for(int j=0;j<words[i].length();j++){
+					if(words[i][j] == c){
+						count--;
+					}
+				}
+
+				if(count != 0){
 					shouldUse[i] = 0;
 					continue;
 				}
 			}
-			
-			if(missList.size() > 0){
-				bool flag = true;
-				char d = missList.back();
+			else{
+				// if condition needed for the first iteration
+				if(missList.size() > 0){
+					char d = missList.back();
 
-				if(charPresentInString(words[i], d)){
-					flag = false;
-				}
-		
-				if(!flag){
-					shouldUse[i] = 0;
-					continue;
+					if(charPresentInString(words[i], d)){
+						shouldUse[i] = 0;
+						continue;
+					}
 				}
 			}
 
 			// both conditions satisfied, good for calculating frequencies
-			vector<int> localFreq(26, 0);
-			for(int j=0;j<words[i].length();j++){
-				if(!indicesOfHit[j]){
-					int ch = int(words[i][j])-97;
+			string word = words[i];
+			for(int j=0;j<word.length();j++){
+				if(blanks[j] == '_'){
+					int ch = int(word[j])-97;
 					freqs[ch]++;
-					// if(localFreq[ch] == 0)
-					// 	localFreq[ch] = 1;
+
+					if(word.length() > 1){
+						if(j == 0){
+							int chNext = int(word[j+1])-97;
+							bigrams[ch][chNext]++;
+						}
+						else if(j == word.length()-1){
+							int chPrev = int(word[j-1])-97;
+							bigrams[chPrev][ch]++;
+						}
+						else{
+							int chNext = int(word[j+1])-97;
+							bigrams[ch][chNext]++;
+							
+							int chPrev = int(word[j-1])-97;
+							bigrams[chPrev][ch]++;
+						}
+					}
 				}
 			}
-
-			// for(int j=0;j<26;j++){
-			// 	freqs[j] += localFreq[j];
-			// }
 		}
 	}
 
@@ -98,38 +105,75 @@ char getMaxFreqChar(vector<string>& words, vector<bool>& shouldUse, int start, i
 		freqs[int(missList[i])-97] = -100000000;
 
 	int maxFreq = 0;
+	vector<int> indicesOfMax;
 	char c = 'y';
-	bool gotIn = false;
 	for(int i=0;i<26;i++){
 		if(freqs[i] > maxFreq){
-			gotIn = true;
 			maxFreq = freqs[i];
+			indicesOfMax.clear();
+			indicesOfMax.push_back(i);
 			c = char(97+i);
 		}
+		else if(freqs[i] == maxFreq){
+			indicesOfMax.push_back(i);
+		}
 	}
-	
-	if(!gotIn){
-		vector<pair<int, char> > f;
-		for(int i=0;i<26;i++)
-			f.push_back(pair<int, char>(0, char(i+97)));
 
-		for(int i=start;i<end;i++){
-			for(int j=0;j<words[i].length();j++){
-				f[int(words[i][j])-97].first += 1;
+	if(indicesOfMax.size() > 1 && blanks.length() > 1){
+		// multiple values with the same highest frequency occur
+		// use bigrams to resolve the tie
+		vector<int> bigramCount(indicesOfMax.size(), 0);
+		for(int j=0;j<indicesOfMax.size();j++){
+			int guessChar = indicesOfMax[j];
+
+			for(int i=0;i<blanks.length();i++){
+				if(blanks[i] == '_'){
+					if(i == 0){
+						if(blanks[i+1] == '_'){
+							continue;
+						}
+						else{
+							bigramCount[j] += bigrams[guessChar][int(blanks[i+1])-97];
+						}
+					}
+					else if(i == blanks.length()-1){
+						if(blanks[i-1] == '_'){
+							continue;
+						}
+						else{
+							bigramCount[j] += bigrams[int(blanks[i-1])-97][guessChar];
+						}
+					}
+					else{
+						if(blanks[i+1] == '_'){
+							continue;
+						}
+						else{
+							bigramCount[j] += bigrams[guessChar][int(blanks[i+1])-97];
+						}
+
+						if(blanks[i-1] == '_'){
+							continue;
+						}
+						else{
+							bigramCount[j] += bigrams[int(blanks[i-1])-97][guessChar];
+						}
+					}
+				}	
 			}
 		}
 
-		sort(f.begin(), f.end());
-		for(int i=0;i<26;i++){
-			if(!charInVec(missList, f[i].second) && !charInVec(hitList, f[i].second)){
-				return f[i].second;
+		int maxIndex = 0, maxVal = 0;
+		for(int i=0;i<bigramCount.size();i++){
+			if(bigramCount[i] > maxVal){
+				maxVal = bigramCount[i];
+				maxIndex = i;
 			}
 		}
+		return char(indicesOfMax[maxIndex]+97);
 	}
-	
 	
 	return c;
-	
 }
 
 void printBlanks(string blanks, vector<char>& missList){
@@ -171,7 +215,7 @@ int main(){
 	}
 	wordBoundaries[maxWordLen] = pair<int, int>(last, words.size());
 
-	vector<bool> shouldUse(words.size(), 0);
+	vector<int> shouldUse(words.size(), 0);
 	int correct = 0, incorrect = 0;
 
 	if(!print)
@@ -179,15 +223,17 @@ int main(){
 	else
 		inp.open("test.txt");
 	while(inp>>s){
-		if(!print)
-			cout<<correct + incorrect<<endl;
+		if(!print){
+			int sum = correct + incorrect + 1;
+			if(sum % 1000 == 0)
+				cout<<sum<<endl;
+		}
 		
 		vector<char> missList;
 		vector<char> hitList;
 
 		int lenRemaining = s.length();
 		string blanks = string(lenRemaining, '_');
-		vector<bool> indicesOfHit(lenRemaining, false);
 				
 		if(print){
 			printBlanks(blanks, missList);
@@ -203,24 +249,29 @@ int main(){
 			end = words.size();
 		}
 		fill(shouldUse.begin() + start, shouldUse.begin() + end, 1);
+		bool lastHitOrMiss = false;
+		int lastHitFreq;
 
 		while(missList.size() < 6 && lenRemaining > 0){
-			char c = getMaxFreqChar(words, shouldUse, start, end, hitList, missList, indicesOfHit);
+			char c = getMaxFreqChar(words, shouldUse, start, end, hitList, missList, lastHitOrMiss, lastHitFreq, blanks);
 			
 			if(print)
 				cout<<"guess: "<<c<<endl;
 
 			if(charPresentInString(s, c)){
+				lastHitFreq = 0;
+				lastHitOrMiss = 1;
 				hitList.push_back(c);
 				for(int i=0;i<s.length();i++){
 					if(s[i] == c){
-						lenRemaining -= 1;
+						lenRemaining--;
 						blanks[i] = c;
-						indicesOfHit[i] = 1;
+						lastHitFreq++;
 					}
 				}
 			}
 			else{
+				lastHitOrMiss = 0;
 				missList.push_back(c);
 			}
 			
@@ -231,12 +282,12 @@ int main(){
 		if(charPresentInString(blanks, '_')){
 			incorrect += 1;
 
-			int count = 0;
-			for(int k=0;k<blanks.length();k++){
-				if(blanks[k] == '_')
-					count++;
-			}
-			cerr<<(correct+incorrect)<<" "<<count<<" "<<blanks.length()<<endl;
+			// int count = 0;
+			// for(int k=0;k<blanks.length();k++){
+			// 	if(blanks[k] == '_')
+			// 		count++;
+			// }
+			// cerr<<(correct+incorrect)<<" "<<count<<" "<<blanks.length()<<endl;
 		}
 		else{
 			correct += 1;
